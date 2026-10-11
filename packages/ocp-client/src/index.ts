@@ -375,9 +375,16 @@ export class OcpClient {
       });
       statusCode = response.status;
       const text = await response.text();
-      const payload = text ? JSON.parse(text) : null;
-
       if (!response.ok) {
+        let payload: unknown = null;
+        if (text) {
+          try {
+            payload = JSON.parse(text);
+          } catch {
+            // Proxies may return HTML or plain text instead of a JSON error.
+            payload = text.slice(0, 2000);
+          }
+        }
         errorCode = 'http_error';
         throw new OcpClientError(`HTTP ${response.status} from ${url}`, {
           url,
@@ -386,12 +393,16 @@ export class OcpClient {
         });
       }
 
-      return payload;
+      return text ? JSON.parse(text) : null;
     } catch (error) {
       if (error instanceof OcpClientError) throw error;
       errorCode = classifyClientError(error);
-      throw new OcpClientError(`Failed to fetch ${url}`, {
+      const message = errorCode === 'invalid_json' && statusCode !== undefined
+        ? `Invalid JSON response from ${url}`
+        : `Failed to fetch ${url}`;
+      throw new OcpClientError(message, {
         url,
+        ...(statusCode !== undefined ? { status: statusCode } : {}),
         cause: error instanceof Error ? error.message : String(error),
       });
     } finally {
