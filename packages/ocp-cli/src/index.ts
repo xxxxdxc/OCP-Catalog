@@ -51,7 +51,10 @@ async function run(argv: string[]) {
     return help(domain === 'help' ? [command, ...rest].filter((item): item is string => !!item) : []);
   }
   if (command === 'help' || command === '--help' || command === '-h') return help([domain]);
-  if (rest.includes('help') || rest.includes('--help') || rest.includes('-h')) return help([domain, command].filter(Boolean));
+  const helpFlags = parseFlags(rest);
+  if (rest[0] === 'help' || helpFlags.values.has('help') || helpFlags.positionals.includes('-h')) {
+    return help([domain, command].filter(Boolean));
+  }
 
   if (domain === 'setup') {
     const flags = parseFlags([command, ...rest].filter((item): item is string => !!item));
