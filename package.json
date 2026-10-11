@@ -8,7 +8,8 @@
   "workspaces": [
     "packages/*",
     "examples/typescript",
-    "apps/ocp-site-web"
+    "apps/ocp-site-web",
+    "examples/milk-tea-app"
   ],
   "scripts": {
     "dev": "turbo dev",

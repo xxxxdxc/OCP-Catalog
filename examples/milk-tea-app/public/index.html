@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>茶选 · 把喜欢的，装进一杯</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="茶选首页"><span class="brand-mark">茶</span><span>茶选<small>TEA, YOUR WAY</small></span></a><nav aria-label="主导航"><button class="nav active" data-tab="menu">饮品菜单</button><button class="nav" data-tab="orders">我的订单 <span id="order-count"></span></button><button class="nav" data-tab="protocol">协议演示 ↗</button></nav><span class="demo-badge"><i></i> 本地模拟店 · 无真实支付</span></header>
+<main>
+<section id="menu-tab">
+  <div class="hero"><div><p class="eyebrow">A LITTLE TEA. A LITTLE JOY.</p><h1>今天，喝点<span>喜欢的。</span></h1><p>两家小店，一份好心情。选茶、调甜度，把这一杯留给自己。</p></div><div class="hero-note"><span class="leaf">✳</span><strong>鲜茶现调<br>随心搭配</strong><small>2 家模拟门店 / 8 款饮品</small></div></div>
+  <div class="layout"><section class="menu-area" aria-label="奶茶菜单">
+    <div class="search-row"><label class="search-box"><span>⌕</span><input id="search" aria-label="搜索饮品" placeholder="找一杯喜欢的：珍珠、茉莉、果茶…"></label><label class="budget">预算 <span>¥</span><input id="budget" type="number" min="0" aria-label="中杯基础价上限" placeholder="不限"></label><button id="search-button" class="search-button">搜索</button></div>
+    <div class="filter-line"><span class="filter-label">门店</span><div id="shops" class="chips"><button class="chip active" data-shop="">全部门店</button><button class="chip" data-shop="qingyu">青屿茶坊</button><button class="chip" data-shop="mushan">暮山茶社</button></div></div>
+    <div class="filter-line"><span class="filter-label">茶类</span><div id="categories" class="chips"><button class="chip active" data-category="">全部饮品</button><button class="chip" data-category="奶茶">醇香奶茶</button><button class="chip" data-category="果茶">清爽果茶</button></div><span id="result-count" class="result-count"></span></div>
+    <div id="menu-grid" class="menu-grid" aria-live="polite"><p>正在连接门店…</p></div>
+    <p class="menu-footnote">卡片价格为中杯基础价；大杯、加料和数量的最终金额以报价为准。</p>
+  </section>
+  <aside class="order-panel"><div class="panel-heading"><span>YOUR CUP</span><span>随心调一杯</span></div><div id="selection"><div class="empty-cup">◡</div><h2>这一杯，由你决定</h2><p>从左侧选择饮品，<br>调整杯型、甜度、冰量与加料。</p><div class="empty-steps"><span>01 选饮品</span><span>02 看报价</span><span>03 确认下单</span></div></div></aside></div>
+</section>
+<section id="orders-tab" hidden><div class="page-title"><p class="eyebrow">YOUR LITTLE JOYS</p><h1>每一杯，都有<span>回响。</span></h1><p>订单会保存在本机。状态和取餐码均为模拟。</p></div><button class="secondary" id="refresh-orders">刷新订单</button><div id="orders-list"></div></section>
+<section id="protocol-tab" hidden><div class="page-title"><p class="eyebrow">OPEN COMMERCE PROTOCOL</p><h1>一杯奶茶，<span>如何抵达。</span></h1><p>网页通过同一 OCP 客户端访问两个独立目录；下单属于门店业务接口。</p></div><div class="protocol-flow"><div><b>01</b>发现能力<small>GET /ocp/manifest</small></div><span>→</span><div><b>02</b>查询投影<small>POST /ocp/query</small></div><span>→</span><div><b>03</b>解析动作<small>POST /ocp/resolve</small></div><span>→</span><div><b>04</b>确认并下单<small>POST /shop/orders</small></div></div><div class="protocol-note">query 不返回下单入口；resolve 的 view 返回详情链接，checkout 返回需确认、有限期的 API 动作。以下是本次运行的实际调用记录。</div><div id="trace-list"></div></section>
+<div id="message" role="status" aria-live="polite" hidden></div>
+</main><footer><span>茶选 <small>把喜欢的，装进一杯。</small></span><span>OCP 应用演示 · 所有门店、饮品订单及履约均为模拟</span></footer>
+<script type="module" src="/app.js"></script></body></html>
