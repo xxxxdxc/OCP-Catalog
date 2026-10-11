@@ -215,6 +215,45 @@ describe('CLI help', () => {
     ]);
   });
 
+  test('treats help as a query option value during validation', () => {
+    const manifestPath = writeManifestFile();
+    const result = runCli('validate', 'query', '--manifest', manifestPath, '--query', 'help');
+    expect(result).toMatchObject({ ok: true, request: { query: 'help' } });
+    expect(result.command).toBeUndefined();
+  });
+
+  test('catalog query reaches manifest validation when the query is help', () => {
+    const manifestPath = writeManifestFile();
+    const result = runCliRaw(
+      'catalog', 'query', '--manifest', manifestPath,
+      '--query-url', 'https://catalog.example.test/ocp/query',
+      '--query-pack', 'ocp.query.semantic.v1', '--query', 'help',
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatchObject({ error: {
+      code: 'validation_error', details: { code: 'invalid_query_pack' },
+    } });
+    expect(result.stdout).toBeUndefined();
+  });
+
+  test('keeps explicit help commands and help flags working', () => {
+    for (const args of [
+      ['help', 'catalog', 'query'],
+      ['catalog', 'query', 'help'],
+      ['catalog', 'query', '--help'],
+      ['catalog', 'query', '-h'],
+      ['catalog', 'query', '--query', 'help', '--help'],
+    ]) {
+      expect(runCli(...args)).toMatchObject({ domain: 'catalog', action: 'query' });
+    }
+  });
+
+  test('does not interpret a consumed short help token as an option', () => {
+    const manifestPath = writeManifestFile();
+    const result = runCli('validate', 'query', '--manifest', manifestPath, '--query', '-h');
+    expect(result).toMatchObject({ ok: true, request: { query: '-h' } });
+  });
+
   test('validates a query against a manifest before sending it', () => {
     const manifestPath = writeManifestFile();
 
