@@ -21,6 +21,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlsplit
 
 CATALOG_ID = os.environ.get("CATALOG_ID", "cat_example_python")
 CATALOG_NAME = os.environ.get("CATALOG_NAME", "Example Python Catalog")
@@ -261,17 +262,18 @@ class Handler(BaseHTTPRequestHandler):
             "/ocp/health": health,
             "/ocp/contracts": contracts,
         }
-        builder = routes.get(self.path)
+        builder = routes.get(urlsplit(self.path).path)
         if builder is None:
             self._send(404, {"error": {"code": "not_found", "message": f"No route for GET {self.path}"}})
             return
         self._send(200, builder())
 
     def do_POST(self) -> None:  # noqa: N802 (http.server API)
-        if self.path == "/ocp/query":
+        path = urlsplit(self.path).path
+        if path == "/ocp/query":
             self._send(200, query(self._read_json()))
             return
-        if self.path == "/ocp/resolve":
+        if path == "/ocp/resolve":
             status, payload = resolve(self._read_json())
             self._send(status, payload)
             return

@@ -90,6 +90,30 @@ class ConformanceTest(unittest.TestCase):
         self.assertLessEqual(REQUIRED["resolve"], set(body))
         self.assertEqual(body["action_bindings"][0]["action_type"], "url")
 
+    def test_get_routes_with_query_string(self) -> None:
+        routes = (
+            ("/.well-known/ocp-catalog", "WellKnownCatalogDiscovery"),
+            ("/ocp/manifest", "CatalogManifest"),
+            ("/ocp/health", "CatalogHealth"),
+            ("/ocp/contracts", "ObjectContractList"),
+        )
+        for path, kind in routes:
+            with self.subTest(path=path):
+                status, body = _get(self.port, f"{path}?trace=example")
+                self.assertEqual(status, 200)
+                self.assertEqual(body["kind"], kind)
+
+    def test_post_routes_with_query_string(self) -> None:
+        routes = (
+            ("/ocp/query", {"query": "headphones"}, "CatalogQueryResult"),
+            ("/ocp/resolve", {"entry_id": "entry_example_inmemory_sku-001"}, "ResolvableReference"),
+        )
+        for path, payload, kind in routes:
+            with self.subTest(path=path):
+                status, body = _post(self.port, f"{path}?trace=example", payload)
+                self.assertEqual(status, 200)
+                self.assertEqual(body["kind"], kind)
+
     def test_resolve_unknown_404(self) -> None:
         status, _ = _post(self.port, "/ocp/resolve", {"entry_id": "entry_example_inmemory_nope"})
         self.assertEqual(status, 404)
