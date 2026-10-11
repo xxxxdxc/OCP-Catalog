@@ -1,6 +1,6 @@
 # 茶选：基于 OCP 的奶茶应用
 
-新增 **[团餐管家 Codex skill](./README-TeamMeal.md)**：组织者提供微信聊天文字，整理团队偏好，接入瑞幸和麦当劳，同店整单报价、预算核对、局部重配和付款人确认后提交。源码位于仓库 `skills/team-meal-manager`。
+新增 **[团餐管家 Codex skill](./README-TeamMeal.md)**：组织者提供微信聊天文字，整理团队偏好，接入瑞幸和麦当劳，同店整单报价、预算核对、局部重配和付款人确认后提交。skill 与执行资产已迁移至独立仓库 https://github.com/xxxxdxc/team-meal-manager 。
 
 **当前默认网页已接入瑞幸真实 MCP，启动和使用请先阅读 [瑞幸接入说明](./README-Luckin.md)。** 下方保留原模拟奶茶应用的说明；如需运行它，启动前设置 `$env:TEA_PROVIDER='mock'`。`bun run mcp` 和原有 `ocp-milktea-local` 仍是模拟工具，不会创建真实瑞幸订单。
 
