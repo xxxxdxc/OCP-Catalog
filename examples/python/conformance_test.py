@@ -31,7 +31,10 @@ def _get(port: int, path: str):
 
 
 def _post(port: int, path: str, body: dict):
-    data = json.dumps(body).encode()
+    return _post_raw(port, path, json.dumps(body).encode())
+
+
+def _post_raw(port: int, path: str, data: bytes):
     req = urllib.request.Request(
         f"http://127.0.0.1:{port}{path}", data=data, headers={"content-type": "application/json"}, method="POST"
     )
@@ -39,7 +42,8 @@ def _post(port: int, path: str, body: dict):
         with urllib.request.urlopen(req) as resp:
             return resp.status, json.loads(resp.read().decode())
     except urllib.error.HTTPError as exc:
-        return exc.code, json.loads(exc.read().decode())
+        with exc:
+            return exc.code, json.loads(exc.read().decode())
 
 
 class ConformanceTest(unittest.TestCase):
@@ -53,6 +57,8 @@ class ConformanceTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls.httpd.shutdown()
+        cls.thread.join()
+        cls.httpd.server_close()
 
     def test_manifest(self) -> None:
         status, body = _get(self.port, "/ocp/manifest")
@@ -113,6 +119,53 @@ class ConformanceTest(unittest.TestCase):
                 status, body = _post(self.port, f"{path}?trace=example", payload)
                 self.assertEqual(status, 200)
                 self.assertEqual(body["kind"], kind)
+
+    def test_query_rejects_invalid_limits(self) -> None:
+        for value in ("abc", "5", 1.5, 0, -1, 51, True, False, None, [], {}):
+            with self.subTest(limit=value):
+                status, body = _post(self.port, "/ocp/query", {"limit": value})
+                self.assertEqual(status, 400)
+                self.assertEqual(body["error"]["code"], "invalid_request")
+                self.assertEqual(body["error"]["field"], "limit")
+                self.assertTrue(body["error"]["message"])
+
+    def test_query_rejects_invalid_queries(self) -> None:
+        for value in (123, True, None, [], {}):
+            with self.subTest(query=value):
+                status, body = _post(self.port, "/ocp/query", {"query": value})
+                self.assertEqual(status, 400)
+                self.assertEqual(body["error"]["field"], "query")
+
+    def test_query_rejects_invalid_json_bodies(self) -> None:
+        for data in (b"{", b"[]", b"null", b"123", b'"headphones"', b"\xff"):
+            with self.subTest(data=data):
+                status, body = _post_raw(self.port, "/ocp/query", data)
+                self.assertEqual(status, 400)
+                self.assertEqual(body["error"]["code"], "invalid_request")
+                self.assertEqual(body["error"]["field"], "body")
+                self.assertTrue(body["error"]["message"])
+
+    def test_query_limits_and_defaults(self) -> None:
+        for limit in (1, 50):
+            with self.subTest(limit=limit):
+                status, body = _post(self.port, "/ocp/query", {"limit": limit})
+                self.assertEqual(status, 200)
+                self.assertEqual(body["page"]["limit"], limit)
+                self.assertEqual(body["result_count"], min(limit, 3))
+        for payload in ({}, {"query": ""}, {"query": "headphones"}):
+            with self.subTest(payload=payload):
+                status, body = _post(self.port, "/ocp/query", payload)
+                self.assertEqual(status, 200)
+                self.assertEqual(body["page"]["limit"], 20)
+                self.assertEqual(body["query"], payload.get("query", ""))
+        status, body = _post(self.port, "/ocp/query", {"query": "headphones", "limit": 1})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["result_count"], 1)
+        # An invalid request must not prevent the next valid request from succeeding.
+        status, _ = _post(self.port, "/ocp/query", {"limit": 0})
+        self.assertEqual(status, 400)
+        status, _ = _post(self.port, "/ocp/query", {})
+        self.assertEqual(status, 200)
 
     def test_resolve_unknown_404(self) -> None:
         status, _ = _post(self.port, "/ocp/resolve", {"entry_id": "entry_example_inmemory_nope"})

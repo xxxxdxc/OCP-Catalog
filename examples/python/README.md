@@ -42,3 +42,20 @@ python conformance_test.py
 ```
 
 Configuration via env: `CATALOG_ID`, `CATALOG_NAME`, `PORT`, `PUBLIC_BASE_URL`.
+
+## Query input validation
+
+`POST /ocp/query` accepts a JSON object. Omitted `query` defaults to `""` and
+omitted `limit` defaults to `20`; `{}` remains a valid query returning the
+example products. If provided, `query` must be a string and `limit` must be an
+integer from 1 through 50. Values are not coerced or clamped: strings, booleans,
+fractional numbers, `null`, and out-of-range limits are rejected.
+
+Malformed JSON, non-object JSON bodies, invalid UTF-8, and invalid `query` or
+`limit` values return HTTP 400 with a JSON error identifying the field:
+
+```json
+{"error":{"code":"invalid_request","field":"limit","message":"limit must be an integer between 1 and 50."}}
+```
+
+This example validates these query inputs, not the complete OCP request schema.

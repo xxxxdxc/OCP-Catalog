@@ -168,9 +168,21 @@ def _to_entry(product: dict) -> dict:
     }
 
 
+class InvalidRequest(ValueError):
+    def __init__(self, field: str, message: str) -> None:
+        super().__init__(message)
+        self.field = field
+
+
 def query(body: dict) -> dict:
-    term = str(body.get("query", "") or "").strip().lower()
-    limit = min(max(int(body.get("limit", 20) or 20), 1), 50)
+    text = body.get("query", "")
+    if not isinstance(text, str):
+        raise InvalidRequest("query", "query must be a string.")
+    limit = body.get("limit", 20)
+    # bool is a subclass of int in Python, but is not a valid JSON limit.
+    if type(limit) is not int or not 1 <= limit <= 50:
+        raise InvalidRequest("limit", "limit must be an integer between 1 and 50.")
+    term = text.strip().lower()
     if term:
         matches = [
             p
@@ -187,7 +199,7 @@ def query(body: dict) -> dict:
         "catalog_id": CATALOG_ID,
         "query_pack": "ocp.query.keyword.v1",
         "query_mode": "keyword",
-        "query": body.get("query", "") or "",
+        "query": text,
         "result_count": len(page),
         "page": {"limit": limit, "offset": 0, "has_more": False},
         "entries": [
@@ -245,15 +257,21 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _read_json(self) -> dict:
+    def _read_json(self, *, strict: bool = False) -> dict:
         length = int(self.headers.get("content-length", 0) or 0)
         if not length:
             return {}
         try:
             parsed = json.loads(self.rfile.read(length).decode("utf-8"))
-            return parsed if isinstance(parsed, dict) else {}
-        except (ValueError, UnicodeDecodeError):
+        except (ValueError, UnicodeDecodeError) as exc:
+            if strict:
+                raise InvalidRequest("body", "Request body must contain valid UTF-8 JSON.") from exc
             return {}
+        if not isinstance(parsed, dict):
+            if strict:
+                raise InvalidRequest("body", "Request body must be a JSON object.")
+            return {}
+        return parsed
 
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
         routes = {
@@ -271,7 +289,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 (http.server API)
         path = urlsplit(self.path).path
         if path == "/ocp/query":
-            self._send(200, query(self._read_json()))
+            try:
+                result = query(self._read_json(strict=True))
+            except InvalidRequest as exc:
+                self._send(400, {"error": {"code": "invalid_request", "field": exc.field, "message": str(exc)}})
+                return
+            self._send(200, result)
             return
         if path == "/ocp/resolve":
             status, payload = resolve(self._read_json())
